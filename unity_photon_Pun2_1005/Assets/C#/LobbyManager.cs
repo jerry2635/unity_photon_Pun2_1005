@@ -32,7 +32,7 @@ namespace jerry
         private TextMeshProUGUI textRoomPlayer;
         private CanvasGroup groupRoom;
         private Button btnStartGame;
-        private Button btnLeaveGame;
+        private Button btnLeaveRoom;
         #endregion
 
         private void Awake()
@@ -43,9 +43,23 @@ namespace jerry
             textRoomPlayer = GameObject.Find("文字房間人數").GetComponent<TextMeshProUGUI>();
             groupRoom = GameObject.Find("房間畫布").GetComponent<CanvasGroup>();
             btnStartGame = GameObject.Find("按鈕開始遊戲").GetComponent<Button>();
-            btnLeaveGame = GameObject.Find("按鈕離開房間").GetComponent<Button>();
+            btnLeaveRoom = GameObject.Find("按鈕離開房間").GetComponent<Button>();
+
+            btnLeaveRoom.onClick.AddListener(LeaveRoom);
+
+            //photonview 遠端同步客戶("RPC方法".針對使用者)
+            btnStartGame.onClick.AddListener(() => photonView.RPC("RPCStartGame",RpcTarget.All));
 
             PhotonNetwork.ConnectUsingSettings();
+        }
+
+        /// <summary>
+        /// 遠端同步客戶方法
+        /// </summary>
+        [PunRPC]
+        private void RPCStartGame()
+        {
+            PhotonNetwork.LoadLevel("遊戲場景");
         }
 
         /// <summary>
@@ -62,10 +76,15 @@ namespace jerry
             btnJoinRandomRoom = GameObject.Find("按鈕加入隨機房間").GetComponent<Button>();
 
             groupMain = GameObject.Find("主要登入").GetComponent<CanvasGroup>();
-
+                        
             //按下Enter 或 在其他地方點擊左鍵 結束編輯
             //輸入欄位.結束編輯.添加監聽((輸入欄位的字串)=>儲存)
-            inputFieldPlayerName.onEndEdit.AddListener((input) => namePlayer = input);
+           inputFieldCreateRoomName.onEndEdit.AddListener((input) =>
+            {
+                namePlayer = input;
+                PhotonNetwork.NickName = namePlayer;
+            });
+
             inputFieldCreateRoomName.onEndEdit.AddListener((input) => nameCreateRoom = input);
             inputFieldJoinRoomName.onEndEdit.AddListener((input) => nameJoinRoom = input);
 
@@ -81,6 +100,8 @@ namespace jerry
         {
             base.OnConnectedToMaster();
 
+            print("<color=yellow>連線至主機成功!</color>");
+
             groupMain.interactable = true;//連線成功後可以顯示
             groupMain.blocksRaycasts = true;//連線成功後可以輸入
 
@@ -88,7 +109,7 @@ namespace jerry
             groupRoom.interactable = true;
             groupRoom.blocksRaycasts = true;
 
-            textRoomName.text = "房間名稱:" + PhotonNetwork.CurrentRoom.Name;
+            textRoomName.text = "房間名稱" + PhotonNetwork.CurrentRoom.Name;
             textRoomPlayer.text = $"房間人數{  PhotonNetwork.CurrentRoom.PlayerCount}/{PhotonNetwork.CurrentRoom.MaxPlayers}";
         }
 
