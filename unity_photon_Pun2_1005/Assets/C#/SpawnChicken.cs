@@ -10,15 +10,19 @@ namespace jerry
     {
         [SerializeField, Header("烤雞")]
         private GameObject prefabChicken;
-        [SerializeField, Header("生成頻率"),Range(0,5)]
-        private float intervalSpawn=2.5f;
+        [SerializeField, Header("生成頻率"), Range(0, 5)]
+        private float intervalSpawn = 2.5f;
         [SerializeField, Header("生成點")]
-        private Transform[]spawnPoints;
+        private Transform[] spawnPoints;
 
         private void Awake()
         {
-            InvokeRepeating("Spawn", 0, intervalSpawn);
-            //invokerepeating/重複調用 (名稱,等待時間,每秒生成)
+            if (PhotonNetwork.IsMasterClient)
+            {
+                InvokeRepeating("Spawn", 0, intervalSpawn);
+                //invokerepeating/重複調用 (名稱,等待時間,每秒生成)
+            }
+
         }
 
         private void Spawn()

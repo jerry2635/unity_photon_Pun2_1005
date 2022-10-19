@@ -24,6 +24,9 @@ namespace jerry
         private string nameCreateRoom;
         private string nameJoinRoom;
 
+        /// <summary>
+        /// 主要登入畫布
+        /// </summary>
         private CanvasGroup groupMain;
         #endregion
 
@@ -48,7 +51,7 @@ namespace jerry
             btnLeaveRoom.onClick.AddListener(LeaveRoom);
 
             //photonview 遠端同步客戶("RPC方法".針對使用者)
-            btnStartGame.onClick.AddListener(() => photonView.RPC("RPCStartGame",RpcTarget.All));
+            btnStartGame.onClick.AddListener(() => photonView.RPC("RPCStartGame", RpcTarget.All));
 
             PhotonNetwork.ConnectUsingSettings();
         }
@@ -59,6 +62,7 @@ namespace jerry
         [PunRPC]
         private void RPCStartGame()
         {
+            PhotonNetwork.CurrentRoom.IsOpen = false;
             PhotonNetwork.LoadLevel("遊戲場景");
         }
 
@@ -76,10 +80,10 @@ namespace jerry
             btnJoinRandomRoom = GameObject.Find("按鈕加入隨機房間").GetComponent<Button>();
 
             groupMain = GameObject.Find("主要登入").GetComponent<CanvasGroup>();
-                        
+
             //按下Enter 或 在其他地方點擊左鍵 結束編輯
             //輸入欄位.結束編輯.添加監聽((輸入欄位的字串)=>儲存)
-           inputFieldCreateRoomName.onEndEdit.AddListener((input) =>
+            inputFieldPlayerName.onEndEdit.AddListener((input) =>
             {
                 namePlayer = input;
                 PhotonNetwork.NickName = namePlayer;
@@ -91,6 +95,8 @@ namespace jerry
             btnCreateRoom.onClick.AddListener(CreateRoom);
             btnJoinRoom.onClick.AddListener(JoinRoom);
             btnJoinRandomRoom.onClick.AddListener(JoinRandomRoom);
+
+            PhotonNetwork.ConnectUsingSettings();
         }
 
         /// <summary>
@@ -157,6 +163,13 @@ namespace jerry
         public override void OnJoinedRoom()
         {
             base.OnJoinedRoom();
+
+            groupRoom.alpha = 1;
+            groupRoom.interactable = true;
+            groupRoom.blocksRaycasts = true;
+
+            textRoomName.text = "房間名稱:" + PhotonNetwork.CurrentRoom.Name;
+            textRoomPlayer.text = $"房間人數{ PhotonNetwork.CurrentRoom.PlayerCount} /{ PhotonNetwork.CurrentRoom.MaxPlayers}";
         }
 
         public override void OnPlayerEnteredRoom(Player newPlayer)

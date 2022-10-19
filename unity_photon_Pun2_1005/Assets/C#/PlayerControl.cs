@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using TMPro;
 using Cinemachine;
+using UnityEngine.UI;
 
 namespace jerry
 {
@@ -23,6 +24,12 @@ namespace jerry
         private string parWalk = "跑步開關";
         private bool isGround;
         private Transform childCanvas;
+        private TextMeshProUGUI textChicken;
+        private int countChicken;
+        private int countChickenMax = 5;
+        private CanvasGroup groupGame;
+        private TextMeshProUGUI textWinner;
+        private Button btuBackToLobby;
 
         private void OnDrawGizmos()//透明物件.不會顯示在遊戲內
         {
@@ -40,6 +47,20 @@ namespace jerry
             if (!photonView.IsMine) enabled = false;
 
             photonView.RPC("RPCUpdateName", RpcTarget.All);
+
+            textChicken = transform.Find("畫布玩家名稱/烤雞數量").GetComponent<TextMeshProUGUI>();
+            groupGame = GameObject.Find("畫布遊戲介面").GetComponent<CanvasGroup>();
+            textWinner = GameObject.Find("勝利者").GetComponent<TextMeshProUGUI>();
+            
+            btuBackToLobby = GameObject.Find("返回遊戲大廳").GetComponent<Button>();
+            btuBackToLobby.onClick.AddListener(() =>
+            {
+                if (photonView.IsMine)
+                {
+                    PhotonNetwork.LeaveRoom();
+                    PhotonNetwork.LoadLevel("遊戲大廳");
+                }
+            });
         }
 
         private void Start()
@@ -52,16 +73,61 @@ namespace jerry
             Move();
             CheckGround();
             Jump();
+            BackToTop();
+        }
+
+        /// <summary>
+        /// 墜落後.回歸上方
+        /// </summary>
+        private void BackToTop()
+        {
+            if (transform.position.y < -20)
+            {
+                rig.velocity = Vector3.zero;
+                transform.position = new Vector3(1.5f, 15, 0);
+            }
         }
 
         private void OnTriggerEnter2D(Collider2D collision)
         {
             if (collision.name.Contains("烤雞"))//假如(碰撞器.名稱.包含("烤雞")
             {
-                PhotonNetwork.Destroy(collision.gameObject);
+                Destroy(collision.gameObject);
+                
+                //PhotonNetwork.Destroy(collision.gameObject);
                 //連線photon伺服器.在伺服器端銷毀物件
+
+                textChicken.text = (++countChicken).ToString();
+
+                if (countChicken > countChickenMax) Win();
             }
 
+        }
+
+        /// <summary>
+        /// 勝利條件
+        /// </summary>
+        private void Win()
+        {
+            groupGame.alpha = 1;
+            groupGame.interactable = true;
+            groupGame.blocksRaycasts = true;
+
+            textWinner.text = "獲勝玩家:" + photonView.Owner.NickName;
+
+            DestroyObject();//呼叫刪除物件
+        }
+
+        /// <summary>
+        /// 刪除物件
+        /// </summary>
+        private void DestroyObject()
+        {
+            GameObject[] chickens = GameObject.FindGameObjectsWithTag("烤雞");//用Tag搜尋抓取物件
+
+            for (int i = 0; i < chickens.Length; i++) Destroy(chickens[i]);
+
+            Destroy(FindObjectOfType<SpawnChicken>().gameObject);//銷毀烤雞生成程式
         }
 
         [PunRPC]
@@ -94,7 +160,7 @@ namespace jerry
             rig.velocity = new Vector2(speed * h, rig.velocity.y);
             ani.SetBool(parWalk, h != 0);
 
-            if (Mathf.Abs(h) < 0) return;
+            if (Mathf.Abs(h) < 0.1f) return;
             transform.eulerAngles = new Vector3(0, h > 0 ? 180 : 0, 0);
             // ? 判斷 h>0 成不成立.成立回傳0.不成立回傳180
             childCanvas.localEulerAngles = new Vector3(0, h > 0 ? 180 : 0, 0);
